@@ -1,0 +1,41 @@
+{
+  "layers": 28,
+  "d_model": 4096,
+  "n_heads": 16,
+  "n_vocab": 50400,
+  "norm": "layernorm",
+  "pe": "rotary",
+  "pe_rotary_dims": 64,
+
+  "seq": 2048,
+  "cores_per_replica": 8,
+  "per_replica_batch": 1,
+  "gradient_accumulation_steps": 32,
+
+  "warmup_steps": 324,
+  "anneal_steps": 2920,
+  "lr": 1e-5,
+  "end_lr": 1e-6,
+  "weight_decay": 0.1,
+  "total_steps": 3244,
+
+  "tpu_size": 8,
+
+  "bucket": "model_bucket_gpt_us",
+  "model_dir": "/oguz-bucket-playground/t0_150m_word_uniformly_models",
+
+  "train_set": "P3test.train.index",
+  "val_set": {"pile": "P3test.val.index"},
+
+  "eval_harness_tasks": [],
+
+
+  "val_batches": 200,
+  "val_every": 1000,
+  "ckpt_every": 1000,
+  "keep_every": 1000,
+
+  "name": "t0_150m_word_uniformly",
+  "wandb_project": "quantization",
+  "comment": ""
+}
