@@ -108,8 +108,14 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
 def train_step(network, data):
     inputs = {
         "obs": data[:, :, :-1],
-        "target": data[:, :, 1:],
+        "target": data[:, :, 1:]
     }
+
+    """
+    "obs": data[0][:, :, :-1], # 16, 1, 2049 --> 16, 1, 2048
+    "target": data[0][:, :, 1:], # 16, 1, 2049 --> 16, 1, 2048
+    "mask": data[1]
+    """
 
     loss, last_loss, grad_norm, grad_norm_micro = network.train(inputs)
 
@@ -123,9 +129,16 @@ def train_step(network, data):
 
 def eval_step(network, data):
     inputs = {
-        "obs": data[:, :-1],
-        "target": data[:, 1:],
+        "obs": data[:, :, :-1],
+        "target": data[:, :, 1:]
     }
+
+    """
+    "obs": data[0][:, :, :-1], # 16, 1, 2049 --> 16, 1, 2048
+    "target": data[0][:, :, 1:], # 16, 1, 2049 --> 16, 1, 2048
+    "mask": data[1]
+    """
+
 
     out = network.eval(inputs)
     loss = out["loss"]
