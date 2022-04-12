@@ -38,6 +38,14 @@ class TFRecordLoader:
         self.sample_fn = self.sample_once()
 
     def sample_once(self):
+        def create_mask(arr, token_id):
+            
+            indexes = np.where(arr==token_id)
+            mask_ = np.ones(arr.shape)
+            # TODO: mask calculation will be implemented
+            return mask_
+
+
         for i in self.clean_index:
             compression = "ZLIB" if "zstd" in i else ""
 
@@ -46,9 +54,12 @@ class TFRecordLoader:
             file = file.prefetch(10)
 
             for file_idx, data in enumerate(file):
-                import pdb; pdb.set_trace()
+
                 data = jax.tree_map(lambda x: x.numpy(), data)
                 data = self.map_fn(data)
+                #import pdb; pdb.set_trace()
+                mask = create_mask(data, 50256)
+                #pdb.set_trace()
 
                 if not self.file_idx_init and file_idx <= self.file_idx:
                     if file_idx % 1000 == 0:
@@ -56,8 +67,9 @@ class TFRecordLoader:
                     continue
                 self.file_idx_init = True
                 self.file_idx = file_idx
-                yield jax.tree_map(lambda x: x.reshape(self.bs + x.shape[1:]), data)
-                # yield jax.tree_map(lambda x: x.reshape(self.bs + x.shape[1:]), data), mask
+                # yield jax.tree_map(lambda x: x.reshape(self.bs + x.shape[1:]), data)
+                yield jax.tree_map(lambda x: x.reshape(self.bs + x.shape[1:]), data), \
+                    jax.tree_map(lambda x: x.reshape(self.bs + x.shape[1:]), mask)
             self.used.append(i)
             self.file_idx = 0
 
