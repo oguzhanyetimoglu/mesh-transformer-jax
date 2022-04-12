@@ -22,10 +22,10 @@
   "tpu_size": 8,
 
   "bucket": "model_bucket_gpt_us",
-  "model_dir": "/oguz-bucket-playground/t0_150m_word_uniformly_models",
+  "model_dir": "/gptj-bucket-us/step_383500/",
 
   "train_set": "P3test.train.index",
-  "val_set": {"pile": "P3test.val.index"},
+  "val_set": "P3test.val.index",
 
   "eval_harness_tasks": [],
 
