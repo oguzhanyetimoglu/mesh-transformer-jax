@@ -105,17 +105,13 @@ def save(network, step, bucket, path, mp, aux=None, keep_n=3, delete_old=True):
         json.dump(meta, f)
 
 
-def train_step(network, data):
+def train_step(network, data): # data[0].shape = (32, 1, 2049);     data[1].shape = (32, 1, 2049)
+    import pdb; pdb.set_trace()
     inputs = {
-        "obs": data[:, :, :-1],
-        "target": data[:, :, 1:]
+    "obs": data[0][:, :, :-1], # 32, 1, 2049 --> 32, 1, 2048 # input
+    "target": data[0][:, :, 1:], # 32, 1, 2049 --> 32, 1, 2048 # output
+    "mask": data[1][:, :, 1:]
     }
-
-    """
-    "obs": data[0][:, :, :-1], # 16, 1, 2049 --> 16, 1, 2048
-    "target": data[0][:, :, 1:], # 16, 1, 2049 --> 16, 1, 2048
-    "mask": data[1]
-    """
 
     loss, last_loss, grad_norm, grad_norm_micro = network.train(inputs)
 
@@ -127,18 +123,12 @@ def train_step(network, data):
     )
 
 
-def eval_step(network, data):
+def eval_step(network, data): # data[0].shape = (1, 2049);     data[1].shape = (1, 2049)
     inputs = {
-        "obs": data[:, :, :-1],
-        "target": data[:, :, 1:]
+    "obs": data[0][:, :-1], # 1, 2049 --> 1, 2048
+    "target": data[0][:, 1:], # 1, 2049 --> 1, 2048
+    "mask": data[1][:, 1:] 
     }
-
-    """
-    "obs": data[0][:, :, :-1], # 16, 1, 2049 --> 16, 1, 2048
-    "target": data[0][:, :, 1:], # 16, 1, 2049 --> 16, 1, 2048
-    "mask": data[1]
-    """
-
 
     out = network.eval(inputs)
     loss = out["loss"]
@@ -255,11 +245,9 @@ if __name__ == "__main__":
 
     global_val_batch = per_replica_batch * tpu_size // cores_per_replica
 
-    val_sets = {}
-
-    for k, v in params["val_set"].items():
-        val_sets[k] = TFRecordNewInputs(
-            f"data/{v}", batch_size=(global_val_batch,), sample_size=seq
+    val_dataset = TFRecordNewInputs(f"data/{params['val_set']}", 
+                                    batch_size=(global_val_batch,), 
+                                    sample_size=seq
         )
 
     # tok/sec metrics
@@ -298,9 +286,8 @@ if __name__ == "__main__":
 
         print('compiling eval fn')
         start = time.time()
-        for val_set in val_sets.values():
-            eval_step(network, val_set.get_samples())
-            val_set.reset()
+        eval_step(network, val_dataset.get_samples())
+        val_dataset.reset()
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
         project = params.get("wandb_project", "mesh-transformer-jax")
@@ -319,18 +306,16 @@ if __name__ == "__main__":
                      )
 
             if step % val_every == 1:  # 1 because we've already taken a step to compile train fn
-                for name, val_set in val_sets.items():
-                    val_loss = []
-                    for i, _ in tqdm(zip(val_set.sample_once(), range(val_batches)),
-                                     desc=f"validation for step {step}, set {name}",
-                                     total=val_batches):
-                        val_loss.append(eval_step(network, i))
-                    val_set.reset()
+                for i, _ in tqdm(zip(val_dataset.sample_once(), range(val_batches)),
+                                    desc=f"validation for step {step}",
+                                    total=val_batches):
+                    val_loss.append(eval_step(network, i))
+                val_dataset.reset()
 
-                    val_loss = np.array(val_loss).mean()
-                    print(f"validation loss for step {step}, set {name}: {val_loss}")
+                val_loss = np.array(val_loss).mean()
+                print(f"validation loss for step {step}: {val_loss}")
 
-                    wandb.log({f'val/loss_{name}': float(val_loss)}, step)
+                wandb.log({f'val/loss': float(val_loss)}, step)
 
             if step == total_steps:
                 print("training completed!")
