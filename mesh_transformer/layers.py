@@ -566,7 +566,8 @@ class ProjectionShard(hk.Module):
 
         return hk.Flatten()(jnp.transpose(all_proj, (1, 0, 2)))
 
-    def loss(self, x, targets, z_loss=1):
+    #def loss(self, x, targets, z_loss=1):
+    def loss(self, x, targets, mask, z_loss=1):
         x = f_psum(x)
         x = self.norm(x)
         logits = self.proj(x)
@@ -607,7 +608,7 @@ class Projection(hk.Module):
         x = self.norm(x)
         return self.proj(x)
 
-    def loss(self, x, targets, z_loss=1):
+    def loss(self, x, targets,  mask, z_loss=1):
         x = self.norm(x)
         logits = self.proj(x)
 
